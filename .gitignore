@@ -1,2 +1,2 @@
-output/*
-datasets/MATH-test.jsonl
+# output/*
+# datasets/MATH-test.jsonl
