@@ -5,19 +5,20 @@ from transformers import AutoTokenizer, AutoModelForCausalLM
 import torch
 
 lora_config = LoraConfig(
-    r=8,
-    lora_alpha=32,
+    r=64,
+    lora_alpha=16,
     lora_dropout=0.1,
     task_type="CAUSAL_LM",
 )
 
 training_args = SFTConfig(
     output_dir='checkpoints',
-    packing=True,
-    num_train_epochs=1,              # number of training epochs
-    per_device_train_batch_size=2,   # batch size for training
+    # packing=True,
+    num_train_epochs=3,              # number of training epochs
+    per_device_train_batch_size=3,   # batch size for training
     gradient_accumulation_steps=1,   # accumulate gradients over 8 steps
-    save_total_limit=1,               # limit the total amount of checkpoints
+    save_strategy='no',
+    # save_total_limit=1,               # limit the total amount of checkpoints
     logging_steps=50,
 )
 

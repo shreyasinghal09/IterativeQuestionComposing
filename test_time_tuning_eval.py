@@ -8,6 +8,8 @@ from typing import List, Optional, Union
 import torch
 # from vllm import LLM, SamplingParams, RequestOutput
 from tqdm import tqdm
+import random
+import sys
 
 import ttt
 
@@ -47,12 +49,19 @@ def eval_MATH_ttt(
     test_file,
     output_root: str = 'output',
     output_name: str = 'default',
+    split=None
     ):
     os.makedirs(output_root, exist_ok=True)
     output_fn = join(output_root, f'{output_name}.jsonl')
     with open(test_file, 'r') as f:
         # has answer, problem and solution fields
         data_points = [json.loads(line) for line in f]
+    # SHuffle data_points
+    # random.seed(42)
+    # random.shuffle(data_points)
+    # data_points = data_points[:100]
+    if split:
+        data_points = data_points[(split - 1) * 500 : max(len(data_points), split * 500)]
     problems = [dp['problem'] for dp in data_points]
     answers = [dp['answer'] for dp in data_points]
     solutions = [dp['solution'] for dp in data_points]
@@ -100,7 +109,18 @@ def eval_MATH_ICL(
     num_gpus = torch.cuda.device_count()
     if not tokenizer_name:
         tokenizer_name = model_name
-    model = LLM(model_name, tokenizer_name, trust_remote_code=True, tensor_parallel_size=num_gpus)
+    model = LLM(
+        model_name, 
+        # tokenizer_name, 
+        download_dir='/data/user_data/amittur', 
+        # trust_remote_code=True, 
+        tensor_parallel_size=num_gpus, 
+        gpu_memory_utilization=0.95,
+        max_model_len=10000,
+        # load_format='mistral',
+        # config_format='mistral',
+        # tokenizer_mode='mistral',
+    )
     sampling_params = SamplingParams(temperature=0.0, max_tokens=max_new_tokens, stop=stop)
     tokenizer = model.get_tokenizer()
 
@@ -152,7 +172,7 @@ def generate_MATH_solution(
     problem,
     ):
     query = get_question_prompt(problem)
-    similar_questions = get_top_k_similar_questions(query, top_k=2000)
+    similar_questions = get_top_k_similar_questions(query, top_k=500)
     solution = ttt.ttt_predict(similar_questions, query)
     # finetuned_model = get_tuned_model(similar_questions)
     # sampling_params = SamplingParams(temperature=0.0, max_tokens=max_new_tokens, stop=stop)
@@ -170,5 +190,32 @@ def generate_MATH_solution(
     return solution
 
 if __name__ == '__main__':
+    split = int(sys.argv[1])
+    print(split)
     # Take in test file as an argument and call eval_MATH_ttt
-    eval_MATH_ttt('datasets/MATH-test_small.jsonl', output_root='output', output_name='ttt_small')
+    # eval_MATH_ttt('datasets/MATH-test_small.jsonl', output_root='output', output_name='ttt_small')
+    # eval_MATH_ttt('datasets/MATH-test.jsonl', output_root='output', output_name='ttt')
+    eval_MATH_ttt('datasets/MATH-test.jsonl', output_root='output', output_name=f'ttt-500-3epochs-{split}-v2', split=split)
+    # eval_MATH_ICL(model_name='mistralai/Mistral-7B-v0.3', test_file='datasets/MATH-test.jsonl', output_root='output', output_name='icl_full')
+
+# 319
+# 369
+# 405
+# 399
+# 389
+# 408
+# 395 
+# 335
+# 336 
+
+
+# 35
+# 34
+# 43
+# 107
+# 102
+# 37
+# 114
+# 86
+# 33
+# 24
